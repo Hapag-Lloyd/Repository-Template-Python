@@ -1,0 +1,15 @@
+---
+services:
+  localstack:
+    image: localstack/localstack:4.7.0
+    ports:
+      - "127.0.0.1:4566:4566"
+      - "127.0.0.1:4510-4559:4510-4559"
+      - "0.0.0.0:8543:443"
+    security_opt:
+      - "label=disable"
+    environment:
+      - DEBUG=${DEBUG:-0}
+      - PERSISTENCE=${PERSISTENCE:-0}
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"

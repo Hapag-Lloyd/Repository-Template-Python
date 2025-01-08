@@ -1,2 +1,4 @@
 codeowner
 kayma
+pytest
+setuptools
