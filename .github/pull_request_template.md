@@ -1,4 +1,3 @@
-<!--- yamllint disable rule:line-length -->
 # Description
 
 What is the overall goal of your PR? Which problem does it solve? Please also include relevant motivation and context.
