@@ -26,13 +26,13 @@ function restart_script_if_newer_version_available() {
   latest_template_path=$2
 
   current_sha=$(sha256sum "$repository_path/.github/update_workflows.sh" | cut -d " " -f 1)
-  new_sha=$(sha256sum "$latest_template_path/.github/update_workflows.sh" | cut -d " " -f 1)
+  new_sha=$(sha256sum "$latest_template_path/update_workflows.sh" | cut -d " " -f 1)
 
   if [ "$current_sha" != "$new_sha" ]; then
     echo "Restarting the script with the latest version ..."
 
     temp_script=$(mktemp -t update_workflows-XXXXX)
-    cp "$latest_template_path/.github/update_workflows.sh" "$temp_script"
+    cp "$latest_template_path/update_workflows.sh" "$temp_script"
 
     # shellcheck disable=SC2086 # original script parameters are passed to the new script
     bash "$temp_script" $cli_parameters --force "$repository_path"
@@ -41,9 +41,6 @@ function restart_script_if_newer_version_available() {
 }
 
 function ensure_repo_preconditions_or_exit() {
-  # TODO
-  return
-
   if [ "$force_execution" == "true" ]; then
     return
   fi
@@ -169,27 +166,6 @@ function setup_cspell() {
   if [ ! -f .config/dictionaries/project.txt ]; then
     touch .config/dictionaries/project.txt
   fi
-
-  # fix the "addWords" setting needed for some IDEs
-  jq 'del(.dictionaryDefinitions[] | select(.addWords) | .addWords)' .config/cspell.json > .config/cspell.json.tmp
-
-  repository_name=$(basename "$(pwd)")
-
-  if [ "$repository_name" == "Repository-Template-Docker" ]; then
-    jq '(.dictionaryDefinitions[] | select(.name == "docker")).addWords |= true' .config/cspell.json.tmp > .config/cspell.json
-  elif [ "$repository_name" == "Repository-Template-Maven" ]; then
-    jq '(.dictionaryDefinitions[] | select(.name == "maven")).addWords |= true' .config/cspell.json.tmp > .config/cspell.json
-  elif [ "$repository_name" == "Repository-Template-Terraform-Module" ]; then
-    jq '(.dictionaryDefinitions[] | select(.name == "terraform-module")).addWords |= true' .config/cspell.json.tmp > .config/cspell.json
-  elif [ "$repository_name" == "Repository-Template-Simple" ]; then
-    jq '(.dictionaryDefinitions[] | select(.name == "simple")).addWords |= true' .config/cspell.json.tmp > .config/cspell.json
-  elif [ "$repository_name" == "Repository-Template-Python" ]; then
-    jq '(.dictionaryDefinitions[] | select(.name == "python")).addWords |= true' .config/cspell.json.tmp > .config/cspell.json
-  else
-    jq '(.dictionaryDefinitions[] | select(.name == "project")).addWords |= true' .config/cspell.json.tmp > .config/cspell.json
-  fi
-
-  rm .config/cspell.json.tmp
 }
 
 ensure_and_set_parameters_or_exit "$@"
@@ -201,12 +177,10 @@ cd "$repository_path" || exit 8
 echo "Fetching the latest version of the workflows"
 
 latest_template_path=$(mktemp -d -t repository-template-XXXXX)
-# TODO
-gh repo clone https://github.com/Hapag-Lloyd/Workflow-Templates.git "$latest_template_path" -- -b kayma/update-workflows -q
+gh repo clone https://github.com/Hapag-Lloyd/Workflow-Templates.git "$latest_template_path" -- -b main -q
 
-# TODO
 if [ "$force_execution" != "false" ]; then
-  restart_script_if_newer_version_available "$repository_path" "$latest_template_path"fi
+  restart_script_if_newer_version_available "$repository_path" "$latest_template_path"
 fi
 
 echo "Updating the workflows in $repository_path"
@@ -220,19 +194,13 @@ shopt -s nullglob
 # basic setup for all types
 mkdir -p ".github/workflows/scripts"
 cp "$latest_template_path/.github/workflows/default"_* .github/workflows/
-
 cp "$latest_template_path/.github/workflows/scripts/"* .github/workflows/scripts/
-git ls-files --modified -z .github/workflows/scripts/*.sh .github/update_workflows.sh | xargs -0 git update-index --chmod=+x
-git ls-files -z -o --exclude-standard | xargs -0 git update-index --add --chmod=+x
 
-# git update-index --chmod=+x .github/workflows/scripts/*.sh
-
-cp "$latest_template_path/.github/.pre-commit-config.yaml" .github/
 cp "$latest_template_path/.github/pull_request_template.md" .github/
 cp "$latest_template_path/.github/renovate.json5" .github/
+cp "$latest_template_path/update_workflows.sh" .github/
 
-cp "$latest_template_path/.github/update_workflows.sh" .github/
-git ls-files --modified -z .github/update_workflows.sh | xargs -0 git update-index --chmod=+x
+git ls-files --modified -z .github/workflows/scripts/ .github/update_workflows.sh | xargs -0 git update-index --chmod=+x
 git ls-files -z -o --exclude-standard | xargs -0 git update-index --add --chmod=+x
 
 mkdir -p .config
@@ -254,7 +222,6 @@ fi
 #
 # Fix the "on" clause in the workflow files, remove all jobs and set a reference to this repository
 #
-
 version_info=$(
   cd "$latest_template_path" || exit 9
 
