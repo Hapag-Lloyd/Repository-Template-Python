@@ -2,3 +2,4 @@ codeowners
 hapag
 kayma
 mktemp
+nullglob
