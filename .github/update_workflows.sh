@@ -6,10 +6,16 @@ repository_type=""
 release_type="auto"
 force_execution="false"
 repository_path=$(pwd)
+dry_run="false"
 
 branch_name="update-workflows-$(date +%s)"
 
 function ensure_prerequisites_or_exit() {
+  if ! command -v pre-commit &> /dev/null; then
+    echo "pre-commit is not installed. https://github.com/pre-commit/pre-commit"
+    exit 1
+  fi
+
   if ! command -v yq &> /dev/null; then
     echo "yq is not installed. https://github.com/mikefarah/yq"
     exit 1
@@ -59,11 +65,12 @@ function ensure_repo_preconditions_or_exit() {
 }
 
 function show_help_and_exit() {
-  echo "Usage: $0 <repository-type> --release-type auto|manual"
+  echo "Usage: $0 <repository-type> --release-type auto|manual --dry-run"
   echo "repository-type: docker, github-only, maven, terraform_module"
-  echo "release-type: (optional)"
+  echo "--release-type: (optional)"
   echo "  auto: the release will be triggered automatically on a push to the default branch"
   echo "  manual: the release will be triggered manually via separate PR, which is created automatically"
+  echo "--dry-run: (optional) do not create a PR"
 
   exit 1
 }
@@ -84,8 +91,12 @@ Done by the workflows in this feature branch, except for the release workflow.
 EOF
   )
 
-  gh pr create --title "ci(deps): update workflows to latest version" --body "$body" --base main
-  gh pr view --web
+  if [ "$dry_run" == "true" ]; then
+    echo "Dry run, no PR created"
+  else
+    gh pr create --title "ci(deps): update workflows to latest version" --body "$body" --base main
+    gh pr view --web
+  fi
 }
 
 function ensure_and_set_parameters_or_exit() {
@@ -93,6 +104,10 @@ function ensure_and_set_parameters_or_exit() {
 
   while [[ $# -gt 0 ]]; do
     case $1 in
+      --dry-run)
+        dry_run="true"
+        shift
+        ;;
       -f|--force)
         force_execution="true"
         repository_path=$2
@@ -176,10 +191,10 @@ cd "$repository_path" || exit 8
 
 echo "Fetching the latest version of the workflows"
 
-latest_template_path=$(mktemp -d -t repository-template-XXXXX)
+latest_template_path=$(mktemp -d -t repository-templates-XXXXX)
 gh repo clone https://github.com/Hapag-Lloyd/Workflow-Templates.git "$latest_template_path" -- -b main -q
 
-if [ "$force_execution" != "false" ]; then
+if [ "$force_execution" != "true" ]; then
   restart_script_if_newer_version_available "$repository_path" "$latest_template_path"
 fi
 
@@ -198,14 +213,15 @@ cp "$latest_template_path/.github/workflows/scripts/"* .github/workflows/scripts
 
 cp "$latest_template_path/.github/pull_request_template.md" .github/
 cp "$latest_template_path/.github/renovate.json5" .github/
-cp "$latest_template_path/update_workflows.sh" .github/
+#cp "$latest_template_path/update_workflows.sh" .github/
 
-git ls-files --modified -z .github/workflows/scripts/ .github/update_workflows.sh | xargs -0 git update-index --chmod=+x
-git ls-files -z -o --exclude-standard | xargs -0 git update-index --add --chmod=+x
+git ls-files --modified -z .github/workflows/scripts/ .github/update_workflows.sh | xargs -0 -I {} git update-index --chmod=+x {}
+git ls-files -z -o --exclude-standard | xargs -0 -I {} git update-index --add --chmod=+x {}
 
 mkdir -p .config
 # copy fails if a directory is hit. dictionaries/ is handled in the setup_cspell function
 cp -p "$latest_template_path/.config/"*.* .config/
+cp -p "$latest_template_path/.config/".*.* .config/
 
 setup_cspell "$latest_template_path"
 
@@ -349,6 +365,8 @@ do
     fi
   done
 done
+
+pre-commit install -c .config/.pre-commit-config.yaml
 
 create_commit_and_pr .
 
