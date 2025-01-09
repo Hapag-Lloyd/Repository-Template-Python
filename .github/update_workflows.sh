@@ -213,7 +213,7 @@ cp "$latest_template_path/.github/workflows/scripts/"* .github/workflows/scripts
 
 cp "$latest_template_path/.github/pull_request_template.md" .github/
 cp "$latest_template_path/.github/renovate.json5" .github/
-#cp "$latest_template_path/update_workflows.sh" .github/
+cp "$latest_template_path/update_workflows.sh" .github/
 
 git ls-files --modified -z .github/workflows/scripts/ .github/update_workflows.sh | xargs -0 -I {} git update-index --chmod=+x {}
 git ls-files -z -o --exclude-standard | xargs -0 -I {} git update-index --add --chmod=+x {}
