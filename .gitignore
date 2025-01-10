@@ -1,1 +1,4 @@
 .idea/
+
+# output of rebase_init_branches.sh
+rebase-init-branches-*/

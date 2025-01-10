@@ -57,17 +57,8 @@ gh repo clone https://github.com/Hapag-Lloyd/Repository-Template-Maven.git "$lat
 # create a new branch to update the templates
 git checkout -b "$new_branch_name"
 
-# update issue templates
-cp -r "$latest_template_path/.github/ISSUE_TEMPLATE" .github/
-
-# update pull request template
-cp "$latest_template_path/.github/PULL_REQUEST_TEMPLATE.md" .github/
-
-# update contributing guidelines
-cp "$latest_template_path/.github/CONTRIBUTING.md" .github/
-
 # update the update scripts
-cp "$latest_template_path/.github"/update_*.sh .github/
+cp "$latest_template_path"/update_*.sh .github/
 
 # create a commit, push it and open a pull request
 git add .github
