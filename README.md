@@ -6,9 +6,6 @@ run
 ```shell
 git checkout main
 .github/update_templates.sh
-
-# strongly suggested!
-pre-commit install -c .github/pre-commit-config.yaml
 ```
 
 In case a major release is published on the Workflow-Template repository, run `.github/update_workflows.sh`. This creates a PR
