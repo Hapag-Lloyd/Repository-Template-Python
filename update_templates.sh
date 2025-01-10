@@ -32,7 +32,7 @@ function create_and_show_pr_for_init_branch() {
   if git branch | grep -q "$branch_name"; then
     git checkout "$branch_name"
 
-    title=$(head -n1 pr-description.md)
+    title=$(head -n1 pr-description.md | sed 's/<!--.*-->//g' | sed -e 's/[[:space:]]*$//')
     body=$(tail -n2 pr-description.md)
 
     rm pr-description.md
